@@ -1,0 +1,23 @@
+images:
+  backend:
+    tag: "latest"
+
+  frontend:
+    tag: "latest"
+
+replicaCount:
+  backend: 1
+  frontend: 1
+
+frontend:
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30080
+
+postgres:
+  storage:
+    size: 5Gi
+
+ingress:
+  enabled: false

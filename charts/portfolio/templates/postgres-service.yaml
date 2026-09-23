@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "portfolio.fullname" . }}-postgres
+  labels:
+    app: {{ include "portfolio.fullname" . }}-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "portfolio.fullname" . }}-postgres
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.service.port }}
+      targetPort: postgres
+      protocol: TCP

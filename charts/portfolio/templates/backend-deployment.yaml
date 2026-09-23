@@ -1,0 +1,101 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "portfolio.fullname" . }}-backend
+  labels:
+    app: {{ include "portfolio.fullname" . }}-backend
+
+spec:
+  replicas: {{ .Values.replicaCount.backend }}
+
+  selector:
+    matchLabels:
+      app: {{ include "portfolio.fullname" . }}-backend
+
+  template:
+    metadata:
+      labels:
+        app: {{ include "portfolio.fullname" . }}-backend
+
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: PGHOST
+              value: {{ include "portfolio.fullname" . }}-postgres
+            - name: PGPORT
+              value: {{ .Values.postgres.service.port | quote }}
+            - name: PGUSER
+              value: {{ .Values.postgres.username | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.postgres.database | quote }}
+
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready."
+
+      containers:
+        - name: backend
+          image: "{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}"
+          imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "portfolio.fullname" . }}-secret
+                  key: database-url
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "portfolio.fullname" . }}-secret
+                  key: jwt-secret
+
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "portfolio.fullname" . }}-secret
+                  key: jwt-refresh-secret
+
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
