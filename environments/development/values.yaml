@@ -1,9 +1,9 @@
 images:
   backend:
-    tag: "latest"
+    tag: "83abbbd"
 
   frontend:
-    tag: "latest"
+    tag: "83abbbd"
 
 replicaCount:
   backend: 1
